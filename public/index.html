@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+
+<form id="mainForm" method="post" action="0.json">
+  <input type="range"  min="100" max="100000" step="100" name="value" list="tickmarks">
+  <input type="range"  min="0" max="100" step="1" name="tax">
+  <select name="instalments">
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+    <option value="8">8</option>
+    <option value="9">9</option>
+    <option value="10">10</option>
+    <option value="11">11</option>
+    <option value="12">12</option>
+  </select>
+  <button type="submit">send</button>
+</form>
+
+
+<datalist id="tickmarks">
+  <option value="100" label="100">
+  <option value="100000" label="100 000">
+</datalist>
+
+<table id="resultTable" style="display:none; margin-top: 100px; width: 100%; border-collapse: collapse;border: 1px solid #ddd">
+  <thead>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+
+<script>
+  let form = document.querySelector('#mainForm')
+  form.addEventListener('click', (event) => {
+    event.preventDefault()
+    let formData = new FormData(form);
+    formData.append('user_time', (new Date()).toUTCString());
+    fetch('http://127.0.0.1:9000/', {
+      method: 'post',
+      headers: {},
+      mode: 'cors',
+      body: formData
+    })
+      .then(res => res.json())
+      .then(json => {
+        printResults(json)
+      })
+  })
+
+  function printResults (results) {
+    let table = document.querySelector('#resultTable')
+    table.deleteTHead();
+    table.style['display'] = 'table'
+    let headers = ['', 'Policy']
+    for (var i = 1; i <= results.instalments.length; i++) {
+      headers.push(i +' installment')
+    }
+    createHeader(
+      table,
+      headers
+    )
+    createRow(table, ['Value', formatMoney(results.value)].concat(getRowInstalments(results.instalments, 'value')))
+    createRow(table, ['Base premium ('+results.basePrice.percent+'%)', formatMoney(results.basePrice.value)].concat(getRowInstalments(results.instalments, 'basePrice')))
+    createRow(table, ['Commission ('+results.commission.percent+'%)', formatMoney(results.commission.value)].concat(getRowInstalments(results.instalments, 'commission')))
+    createRow(table, ['Tax ('+results.tax.percent+'%)', formatMoney(results.tax.value)].concat(getRowInstalments(results.instalments, 'tax')))
+    createRow(
+      table,
+      ['Total cost', formatMoney(results.total)].concat(getRowInstalments(results.instalments, 'total')),
+      {'font-weight': 'bold'}
+    )
+  }
+
+  function formatMoney(money) {
+    return (money/100).toFixed(2).toString()
+  }
+
+  function getRowInstalments (instalments, key) {
+    const result = []
+    instalments.forEach(instalment => {
+      let cell = '';
+      if(instalment[key]) {
+        cell = formatMoney(instalment[key])
+      }
+      result.push(cell)
+    })
+    return result
+  }
+
+  function createHeader (table, data) {
+    let head = table.createTHead()
+    let row = head.insertRow()
+    data.forEach((item, index) => {
+      const cell = row.insertCell()
+      cell.appendChild(document.createTextNode(item))
+      cell.style.border = '1px solid #ddd'
+      cell.style.fontWeight = 'bold'
+      cell.style.textAlign = (index != 1) ? 'right' : 'left'
+    })
+  }
+
+  function createRow (table, data, css = {}) {
+    let newRow = table.insertRow()
+    Object.keys(css).forEach((rule) => {
+      newRow.style[rule] = css[rule]
+    })
+    data.forEach((item, index) => {
+      const cell = newRow.insertCell()
+      cell.appendChild(document.createTextNode(item))
+      cell.style.border = '1px solid #ddd'
+      cell.style.padding = '5px'
+      cell.style.textAlign = index ? 'right' : 'left'
+    })
+  }
+</script>
+</body>
+</html>
